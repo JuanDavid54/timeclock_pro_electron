@@ -1,0 +1,94 @@
+{
+  "name": "Staffmonitor",
+  "version": "0.1.0",
+  "private": true,
+  "productName": "Staffmonitor",
+  "main": "electron/main.js",
+  "dependencies": {
+    "15": "^0.0.0",
+    "@emotion/react": "^11.10.5",
+    "@emotion/styled": "^11.10.5",
+    "@hookform/resolvers": "^2.9.10",
+    "@iconify/react": "^4.0.1",
+    "@mui/icons-material": "^5.11.0",
+    "@mui/material": "^5.11.0",
+    "@mui/x-date-pickers": "^5.0.13",
+    "@popperjs/core": "^2.11.6",
+    "@srini-b/active-win-mod": "^7.7.10",
+    "auto-launch": "^5.0.5",
+    "axios": "^1.2.1",
+    "bootstrap": "^5.2.3",
+    "chrome-remote-interface": "^0.32.0",
+    "classname": "0.0.0",
+    "classnames": "^2.2.6",
+    "dayjs": "^1.11.7",
+    "get-chrome-tabs": "^1.0.0",
+    "iohook": "^0.9.3",
+    "jwt-decode": "^3.1.2",
+    "keytar": "^7.9.0",
+    "puppeteer": "^18.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.40.0",
+    "react-redux": "^8.0.5",
+    "react-router-dom": "^6.3.0",
+    "react-scripts": "^2.1.3",
+    "redux": "^4.2.0",
+    "redux-devtools-extension": "^2.13.9",
+    "redux-thunk": "^2.4.2",
+    "robocopy": "^0.1.9",
+    "uuid": "^9.0.0",
+    "yup": "^0.32.11"
+  },
+  "homepage": "./",
+  "scripts": {
+    "start": "BROWSER=none PORT=5555 react-scripts start",
+    "start-electron": "ELECTRON_START_URL=http://localhost:5555/ ELECTRON_ACTIVITY_URL=http://localhost:5555/ electron .",
+    "build": "react-scripts build",
+    "build-electron": "mkdir -p build/src && cp -R electron build/electron && cp -R src/shared build/src/shared",
+    "package": "electron-builder build --win -c.extraMetadata.main=build/electron/main.js --publish never",
+    "package-macOS": "electron-builder build --mac -c.extraMetadata.main=../../electron/main.js --publish never",
+    "package-arm": "electron-builder build --mac -c.extraMetadata.main=build/electron/main.js --config.target=x64 --publish never",
+    "package-test": "electron-builder build --mac -c.extraMetadata.main=/electron/main.js --arm64 --publish never",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ],
+  "devDependencies": {
+    "@babel/preset-react": "^7.10.4",
+    "electron": "^12.2.3",
+    "electron-builder": "^23.6.0",
+    "sass": "^1.58.3"
+  },
+  "build": {
+    "files": [
+      "build/**/*",
+      "node_modules/**/*"
+    ],
+    "publish": {
+      "provider": "github",
+      "repo": "electron-cra-example",
+      "owner": "johndyer24"
+    }
+  },
+  "iohook": {
+    "targets": [
+      "electron-87",
+      "node-83"
+    ],
+    "platforms": [
+      "win32",
+      "darwin",
+      "linux",
+      "arm64"
+    ]
+  }
+}
