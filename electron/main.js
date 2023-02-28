@@ -17,6 +17,7 @@ var iconpath = path.join(__dirname, '../public/assets/TrayTemplate.png') // path
 // var iconpath = "./IconTemplate.ico" // path of y
 // Register and start hook
 const ioHook = require('iohook');
+const { main } = require('@popperjs/core');
 ioHook.start();
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
@@ -268,6 +269,7 @@ ipcMain.on("showActivityBar", async () => {
         activityBar.show()
     else
         activityBar.hide()
+    mainWindow.focus()
 })
 
 ipcMain.on("hideActivityWindow", async () => {
