@@ -16,7 +16,7 @@ export default function () {
 
     UseEffectOnce(() => {
         let timer = null;
-        window.electronAPI.ipcRenderer.on("fromMainWindow", (data) => {
+        window.electronAPI.ipcRenderer.on("fromMainWindow", (e, data) => {
             if (data.working) {
                 setWorking(data.working)
                 setProject(data.name)

@@ -23,7 +23,7 @@ const SaveActions = (props) => {
 
     useEffectOnce(() => {
 
-        window.electronAPI.ipcRenderer.on("displays", (data)=>{
+        window.electronAPI.ipcRenderer.on("displays", (e, data)=>{
             setDisplays(data)
         })
 
@@ -52,12 +52,12 @@ const SaveActions = (props) => {
 
     useEffect(() => {
         // receive mouse click and key press event
-        const mouseClickEvent = (data) => {
+        const mouseClickEvent = () => {
             setMouseClicked(prev => prev + 1)
         }
         window.electronAPI.ipcRenderer.on("mouseclick", mouseClickEvent)
 
-        const keydownEvent = (data) => {
+        const keydownEvent = () => {
             setKeyDown(prev => prev + 1)
         }
         window.electronAPI.ipcRenderer.on("keydown", keydownEvent)
@@ -157,7 +157,7 @@ const SaveActions = (props) => {
                 "Content-Type": "multipart/form-data",
             }
         }
-
+console.log(mClick, kClick, mouseCnt, keyCnt)
         setMouseClicked(0)
         setKeyDown(0)
 

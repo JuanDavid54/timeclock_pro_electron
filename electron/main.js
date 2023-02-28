@@ -12,8 +12,8 @@ const autoLaunch = new AutoLaunch({
 
 
 let mainWindow, loadingWindow, activityBar, trayIcon, isLogged = false;
-// var iconpath = path.join(__dirname, '../public/assets/TrayTemplate.png') // path of y
-var iconpath = path.join(__dirname, '../assets/TrayTemplate.png') // path of y
+var iconpath = path.join(__dirname, '../public/assets/TrayTemplate.png') // path of y
+// var iconpath = path.join(__dirname, '../assets/TrayTemplate.png') // path of y
 // var iconpath = "./IconTemplate.ico" // path of y
 // Register and start hook
 const ioHook = require('iohook');
@@ -23,9 +23,7 @@ process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 // keytar.deletePassword('app', 'userinfo');
 // keytar.deletePassword('app', 'settings');
 function createTrayIcon() {
-    console.log("created")
     let appIcon = new Tray(iconpath);
-    console.log("created")
     const contextMenu = Menu.buildFromTemplate([
         {
             label: 'Show App', click: function () {
@@ -145,10 +143,10 @@ function createWindow() {
             icon: iconpath,
             minimizable: false,
             hasShadow: false, // remove the window shadow
-            transparent: true
+            transparent: true,
         }); // 
 
-        activityBar.setAlwaysOnTop(true, 'screen');
+        activityBar.setAlwaysOnTop(true, 'floating')
         activityBar.setPosition(screenWidth / 2 - 350, screenHeight - 35)
 
         activityBar.webContents.on('before-input-event', (event, input) => {

@@ -32,7 +32,7 @@ const AuthProvider = ({ children, ...props }) => {
     useEffectOnce(() => {
         console.log(window)
         window.electronAPI.ipcRenderer.send("getUserInfo")
-        window.electronAPI.ipcRenderer.on('userinfo', (result) => {
+        window.electronAPI.ipcRenderer.on('userinfo', (e, result) => {
             if (result) {
                 try {
                     const { rememberMe } = result;
@@ -47,7 +47,7 @@ const AuthProvider = ({ children, ...props }) => {
             }
         })
         
-        window.electronAPI.ipcRenderer.on('subWindowAutoLogin', (result) => {
+        window.electronAPI.ipcRenderer.on('subWindowAutoLogin', (e, result) => {
             autoAuth(result, "/activity")
         })
     }, [])

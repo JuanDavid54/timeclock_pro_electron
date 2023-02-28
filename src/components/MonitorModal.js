@@ -33,7 +33,7 @@ export default function MonitorModal({
     const breakTimer = useRef(null);
 
     useEffect(() => {
-        const clearEvent = (data) => {
+        const clearEvent = () => {
             if (
                 !open
                 && isWorking

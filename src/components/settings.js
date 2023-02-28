@@ -51,7 +51,8 @@ export default function SettingModal({
 
     useEffectOnce(() => {
         window.electronAPI.ipcRenderer.send("getAppSettings")
-        window.electronAPI.ipcRenderer.once("appSettings", (result) => {
+        window.electronAPI.ipcRenderer.once("appSettings", (e, result) => {
+            console.log(result, "settings")
             if (result) {
                 const data = JSON.parse(result)     
                 dispatch(setReminderSettings(data)) 
@@ -110,7 +111,7 @@ export default function SettingModal({
                     <FormControlLabel value={true} control={<Radio />} label="Enabled" />
                     <FormControlLabel value={false} control={<Radio />} label="Disabled" />
                 </RadioGroup>
-                <label className="desc">Stop application at main screen when computer starts</label>
+                <label className="desc">Start application at main screen when computer starts</label>
             </div>
             <h1 className="option">- Reminders</h1>
             <FormControlLabel control={<Checkbox checked={isRemind} onChange={(e) => updateReminderSettings({ isRemind: e.target.checked })} />} label="Remind me to track time" />
