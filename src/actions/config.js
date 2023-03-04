@@ -1,5 +1,5 @@
-// export const proxy = "https://cors-anywhere.herokuapp.com/";
-export const proxy = "";
+export const proxy = "https://cors-anywhere.herokuapp.com/";
+// export const proxy = "";
 
 // PROJECT ACTIONS
 export const GET_PROJECT_LIST = "GET_PROJECT_LIST";

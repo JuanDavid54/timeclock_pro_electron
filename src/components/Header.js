@@ -86,7 +86,7 @@ const Header = () => {
         }
       })
     getSummary()
-    window.electronAPI.ipcRenderer.on("fromSubWindow", (data) => {
+    window.electronAPI.ipcRenderer.on("fromSubWindow", (e, data) => {
       setSubWinData(data)
     })
     return () => {
