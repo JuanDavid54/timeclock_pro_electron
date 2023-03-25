@@ -12,8 +12,9 @@ const autoLaunch = new AutoLaunch({
 
 
 let mainWindow, loadingWindow, activityBar, trayIcon, isLogged = false;
-var iconpath = path.join(__dirname, '../public/assets/TrayTemplate.png') // path of y
+//var iconpath = path.join(__dirname, '../public/assets/TrayTemplate.png') // path of y
 // var iconpath = path.join(__dirname, '../assets/TrayTemplate.png') // path of y
+var iconpath = (process.env.ELECTRON_START_URL)?path.join(__dirname, '../public/assets/trayicon.ico'): path.join(process.resourcesPath, 'public/assets/trayicon.ico') // path of y
 // var iconpath = "./IconTemplate.ico" // path of y
 // Register and start hook
 const ioHook = require('iohook');
@@ -276,6 +277,14 @@ ipcMain.on("hideActivityWindow", async () => {
     activityBar.hide()
 })
 
+ipcMain.on("getFakescreenshot", (event, _) => {
+
+    const pathAsset = (process.env.ELECTRON_START_URL) ? path.join(__dirname,'../public/assets/screenshot_disabled.jpg') : path.join(process.resourcesPath, 'public/assets/screenshot_disabled.jpg')
+    const img=fs.readFileSync(pathAsset).toString('base64')
+    event.sender.send("getFakescreenshot",img)
+
+});
+
 async function setInitialAppSettings() {
     const settings = await getAppSettings()
     if (!settings) {
@@ -283,6 +292,7 @@ async function setInitialAppSettings() {
     }
 
 }
+
 function getAppSettings() {
     return new Promise((resolve) => {
         const secret = keytar.getPassword('app', 'settings');
@@ -296,6 +306,7 @@ function getAppSettings() {
         })
     })
 }
+
 
 
 // const userInfo = os.userInfo();

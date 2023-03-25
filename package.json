@@ -47,7 +47,7 @@
     "build": "react-scripts build",
     "build-electron": "mkdir -p build/src && cp -R electron build/electron && cp -R src/shared build/src/shared",
     "package": "electron-builder build --win -c.extraMetadata.main=build/electron/main.js --publish never",
-    "package-macOS": "electron-builder build --mac -c.extraMetadata.main=../../electron/main.js --publish never",
+    "package-macOS": "electron-builder build --mac -c.extraMetadata.main=build/electron/main.js --publish never",
     "package-arm": "electron-builder build --mac -c.extraMetadata.main=build/electron/main.js --config.target=x64 --publish never",
     "package-test": "electron-builder build --mac -c.extraMetadata.main=/electron/main.js --arm64 --publish never",
     "test": "react-scripts test",
@@ -69,9 +69,13 @@
     "sass": "^1.58.3"
   },
   "build": {
+    "extends": null,
     "files": [
       "build/**/*",
       "node_modules/**/*"
+    ],
+    "extraResources": [
+      "public/assets/**/*"
     ],
     "publish": {
       "provider": "github",
