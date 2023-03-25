@@ -157,7 +157,7 @@ const SaveActions = (props) => {
                 "Content-Type": "multipart/form-data",
             }
         }
-console.log(mClick, kClick, mouseCnt, keyCnt)
+        //console.log(mClick, kClick, mouseCnt, keyCnt)
         setMouseClicked(0)
         setKeyDown(0)
 
@@ -165,8 +165,17 @@ console.log(mClick, kClick, mouseCnt, keyCnt)
             .post(proxy + "https://panel.staffmonitor.app/api/files", data, config)
     }
 
-    const getProfile = () => {
-        return new Promise((resolve) => {
+    const getProfile = async () => {
+        try {
+
+            const res = await axios.get(proxy + "https://panel.staffmonitor.app/api/profile")
+            return res.data
+
+        } catch (error) {
+            console.log(error)
+            return { blurScreencasts: 0, takeScreencasts: 0 }
+        }
+        /*return new Promise((resolve) => {
             axios
                 .get(proxy + "https://panel.staffmonitor.app/api/profile")
                 .then(res => {
@@ -175,7 +184,7 @@ console.log(mClick, kClick, mouseCnt, keyCnt)
                     resolve(0)
                     console.log(err)
                 })
-        })
+        })*/
     }
 
     const createScreenShot = async () => {
@@ -185,80 +194,109 @@ console.log(mClick, kClick, mouseCnt, keyCnt)
             path, 
             desktopCapturer 
         } = window.electronAPI;
-        const isBlur = await getProfile()
+        
+        const { blurScreencasts, takeScreencasts } = await getProfile()
+        const isBlur = blurScreencasts
 
         try {
-            let maxWidth = 0, maxHeight = 0;
             
-            displays.forEach(item => {
-                let { width, height } = item.workAreaSize;
+            if (!takeScreencasts) {
+            
+                window.electronAPI.ipcRenderer.send("getFakescreenshot")
+                window.electronAPI.ipcRenderer.once("getFakescreenshot", async (event, result) => {
 
-                if (maxWidth < width)
-                    maxWidth = width;
+                    const fileNames = []
+                    //console.log(result)
+                    let fileName = `${uuidv4()}.jpg`;
+                    let outputPath = path.join(os.tmpdir(), fileName);
 
-                if (maxHeight < height)
-                    maxHeight = height;
-            })
+                    //write file 
+                    fs.writeFileSync(outputPath, result, 'base64');
+                    //add file to array
+                    fileNames.push(fileName)
 
-            desktopCapturer
-                .getSources({
-                    types: ['window', 'screen'],
-                    thumbnailSize: {
-                        width: maxWidth,
-                        height: maxHeight
+                    //uploadFile
+                    try {
+                        await uploadFile(fileNames[0])   
+                        fileNames.shift();
+                    } catch (error) {
+                        console.log("fileUpload:", error)    
                     }
-                }).then(async sources => {
-                    let fileNames = []
+                })
 
-                    await Promise.all(sources.map(async (source) => {
-                        return new Promise(async (resolve, reject) => {
-                            if (source.name === 'Entire Screen'
-                                || source.name.startsWith("Screen ")
-                            ) {
-                                let fileName = `${uuidv4()}.jpg`;
-                                let display = displays.find(item => item.id === source.display_id)
-                                let screenWidth = maxWidth, screenHeight = maxHeight;
-                                let outputPath = path.join(os.tmpdir(), fileName);
+            } else {
+                let maxWidth = 0, maxHeight = 0;
+                
+                displays.forEach(item => {
+                    let { width, height } = item.workAreaSize;
 
-                                if (display) {
-                                    screenWidth = display.workAreaSize.width;
-                                    screenHeight = display.workAreaSize.height;
-                                }
+                    if (maxWidth < width)
+                        maxWidth = width;
 
-                                fileNames.push(fileName)
-                                try {
-                                    const img = new Image();
+                    if (maxHeight < height)
+                        maxHeight = height;
+                })
 
-                                    img.src = source.thumbnail.toDataURL();
-                                    img.onload = () => {
-                                        const canvas = document.createElement('canvas');
-                                        canvas.width = screenWidth;
-                                        canvas.height = screenHeight;
+                desktopCapturer
+                    .getSources({
+                        types: ['window', 'screen'],
+                        thumbnailSize: {
+                            width: maxWidth,
+                            height: maxHeight
+                        }
+                    }).then(async sources => {
+                        let fileNames = []
 
-                                        const ctx = canvas.getContext('2d');
-                                        ctx.filter = isBlur ? 'blur(6px)' : 'blur(0px)';  // apply a 10px blur effect
-                                        ctx.drawImage(img, 0, 0, screenWidth, screenHeight);
+                        await Promise.all(sources.map(async (source) => {
+                            return new Promise(async (resolve, reject) => {
+                                if (source.name === 'Entire Screen'
+                                    || source.name.startsWith("Screen ")
+                                ) {
+                                    let fileName = `${uuidv4()}.jpg`;
+                                    let display = displays.find(item => item.id === source.display_id)
+                                    let screenWidth = maxWidth, screenHeight = maxHeight;
+                                    let outputPath = path.join(os.tmpdir(), fileName);
 
-                                        const imageDataURL = canvas.toDataURL('image/jpeg', 0.3);
-                                        fs.writeFileSync(outputPath, imageDataURL.replace(/^data:image\/jpeg;base64,/, ''), 'base64');
-                                        resolve()
+                                    if (display) {
+                                        screenWidth = display.workAreaSize.width;
+                                        screenHeight = display.workAreaSize.height;
                                     }
-                                } catch (error) {
-                                    console.error(error);
-                                    reject()
-                                }
-                            } else resolve()
-                        })
-                    }))
 
-                    uploadFile(fileNames[0])
-                        .then(res => {
-                            fileNames.shift();
-                            fileNames.forEach(item => uploadFile(item, res.data.id))
-                        }).catch(err => {
-                            console.log("fileUpload:", err)
-                        })
-                });
+                                    fileNames.push(fileName)
+                                    try {
+                                        const img = new Image();
+
+                                        img.src = source.thumbnail.toDataURL();
+                                        img.onload = () => {
+                                            const canvas = document.createElement('canvas');
+                                            canvas.width = screenWidth;
+                                            canvas.height = screenHeight;
+
+                                            const ctx = canvas.getContext('2d');
+                                            ctx.filter = isBlur ? 'blur(6px)' : 'blur(0px)';  // apply a 10px blur effect
+                                            ctx.drawImage(img, 0, 0, screenWidth, screenHeight);
+
+                                            const imageDataURL = canvas.toDataURL('image/jpeg', 0.3);
+                                            fs.writeFileSync(outputPath, imageDataURL.replace(/^data:image\/jpeg;base64,/, ''), 'base64');
+                                            resolve()
+                                        }
+                                    } catch (error) {
+                                        console.error(error);
+                                        reject()
+                                    }
+                                } else resolve()
+                            })
+                        }))
+
+                        uploadFile(fileNames[0])
+                            .then(res => {
+                                fileNames.shift();
+                                fileNames.forEach(item => uploadFile(item, res.data.id))
+                            }).catch(err => {
+                                console.log("fileUpload:", err)
+                            })
+                    });
+            }
         } catch (err) {
             console.error(err);
         }
