@@ -1,13 +1,17 @@
 const { contextBridge, ipcRenderer, desktopCapturer } = require('electron')
+const electron = require('electron')
 window.electronAPI = {
     desktopCapturer: desktopCapturer,
     ipcRenderer,
     os: require('os'),
     fs: require('fs'),
     path: require('path'),
-    activeWindow:require('@srini-b/active-win-mod')
+    activeWindow:require('@srini-b/active-win-mod'),
 };
-// : {
+
+window.electron = electron;
+
+// : {s
 //     ...ipcRenderer,
 //     on: (channel, listener) => {
 //         const subscription = (event, ...args) => listener(...args);

@@ -24,6 +24,7 @@ const SaveActions = (props) => {
     useEffectOnce(() => {
 
         window.electronAPI.ipcRenderer.on("displays", (e, data)=>{
+            console.log(data)
             setDisplays(data)
         })
 
@@ -175,16 +176,6 @@ const SaveActions = (props) => {
             console.log(error)
             return { blurScreencasts: 0, takeScreencasts: 0 }
         }
-        /*return new Promise((resolve) => {
-            axios
-                .get(proxy + "https://panel.staffmonitor.app/api/profile")
-                .then(res => {
-                    resolve(res.data.blurScreencasts)
-                }).catch((err) => {
-                    resolve(0)
-                    console.log(err)
-                })
-        })*/
     }
 
     const createScreenShot = async () => {
@@ -192,9 +183,9 @@ const SaveActions = (props) => {
             os, 
             fs,
             path, 
-            desktopCapturer 
+            desktopCapturer            
         } = window.electronAPI;
-        
+
         const { blurScreencasts, takeScreencasts } = await getProfile()
         const isBlur = blurScreencasts
 
@@ -225,6 +216,7 @@ const SaveActions = (props) => {
                 })
 
             } else {
+
                 let maxWidth = 0, maxHeight = 0;
                 
                 displays.forEach(item => {
@@ -236,67 +228,71 @@ const SaveActions = (props) => {
                     if (maxHeight < height)
                         maxHeight = height;
                 })
+                
+                //get sources
+                const sources = await desktopCapturer.getSources({ types: ['window', 'screen'],thumbnailSize: { width: maxWidth, height: maxHeight } })
+                let fileNames = []
 
-                desktopCapturer
-                    .getSources({
-                        types: ['window', 'screen'],
-                        thumbnailSize: {
-                            width: maxWidth,
-                            height: maxHeight
+                await Promise.all(sources.map((source) => {
+                    
+                    return new Promise( async (resolve, reject) => {
+
+                        if (source.name !== 'Entire Screen' && !source.name.startsWith("Screen ")) {
+                            resolve()
+                            return
                         }
-                    }).then(async sources => {
-                        let fileNames = []
 
-                        await Promise.all(sources.map(async (source) => {
-                            return new Promise(async (resolve, reject) => {
-                                if (source.name === 'Entire Screen'
-                                    || source.name.startsWith("Screen ")
-                                ) {
-                                    let fileName = `${uuidv4()}.jpg`;
-                                    let display = displays.find(item => item.id === source.display_id)
-                                    let screenWidth = maxWidth, screenHeight = maxHeight;
-                                    let outputPath = path.join(os.tmpdir(), fileName);
+                        let fileName = `${uuidv4()}.jpg`;
+                        let display = displays.find(item => item.id === source.display_id)
+                        let screenWidth = maxWidth, screenHeight = maxHeight;
+                        let outputPath = path.join(os.tmpdir(), fileName);
 
-                                    if (display) {
-                                        screenWidth = display.workAreaSize.width;
-                                        screenHeight = display.workAreaSize.height;
-                                    }
+                        if (display) {
+                            screenWidth = display.workAreaSize.width;
+                            screenHeight = display.workAreaSize.height;
+                        }
 
-                                    fileNames.push(fileName)
-                                    try {
-                                        const img = new Image();
+                        fileNames.push(fileName)
 
-                                        img.src = source.thumbnail.toDataURL();
-                                        img.onload = () => {
-                                            const canvas = document.createElement('canvas');
-                                            canvas.width = screenWidth;
-                                            canvas.height = screenHeight;
+                        try {
+                            const img = new Image();
 
-                                            const ctx = canvas.getContext('2d');
-                                            ctx.filter = isBlur ? 'blur(6px)' : 'blur(0px)';  // apply a 10px blur effect
-                                            ctx.drawImage(img, 0, 0, screenWidth, screenHeight);
+                            img.src = source.thumbnail.toDataURL();
+                            img.onload = () => {
 
-                                            const imageDataURL = canvas.toDataURL('image/jpeg', 0.3);
-                                            fs.writeFileSync(outputPath, imageDataURL.replace(/^data:image\/jpeg;base64,/, ''), 'base64');
-                                            resolve()
-                                        }
-                                    } catch (error) {
-                                        console.error(error);
-                                        reject()
-                                    }
-                                } else resolve()
-                            })
-                        }))
+                                const canvas = document.createElement('canvas');
+                                canvas.width = screenWidth;
+                                canvas.height = screenHeight;
 
-                        uploadFile(fileNames[0])
-                            .then(res => {
-                                fileNames.shift();
-                                fileNames.forEach(item => uploadFile(item, res.data.id))
-                            }).catch(err => {
-                                console.log("fileUpload:", err)
-                            })
-                    });
+                                const ctx = canvas.getContext('2d');
+                                ctx.filter = isBlur ? 'blur(6px)' : 'blur(0px)';  // apply a 10px blur effect
+                                ctx.drawImage(img, 0, 0, screenWidth, screenHeight);
+
+                                const imageDataURL = canvas.toDataURL('image/jpeg', 0.3);
+                                fs.writeFileSync(outputPath, imageDataURL.replace(/^data:image\/jpeg;base64,/, ''), 'base64');
+                                resolve()
+
+                            }
+
+                        } catch (error) {
+                            console.error(error);
+                            reject()
+                        }
+
+                    })
+
+                }))
+
+                uploadFile(fileNames[0])
+                    .then(res => {
+                        fileNames.shift();
+                        fileNames.forEach(item => uploadFile(item, res.data.id))
+                    }).catch(err => {
+                        console.log("fileUpload:", err)
+                    })
+
             }
+
         } catch (err) {
             console.error(err);
         }

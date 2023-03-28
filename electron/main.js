@@ -14,7 +14,7 @@ const autoLaunch = new AutoLaunch({
 let mainWindow, loadingWindow, activityBar, trayIcon, isLogged = false;
 //var iconpath = path.join(__dirname, '../public/assets/TrayTemplate.png') // path of y
 // var iconpath = path.join(__dirname, '../assets/TrayTemplate.png') // path of y
-var iconpath = (process.env.ELECTRON_START_URL)?path.join(__dirname, '../public/assets/trayicon.ico'): path.join(process.resourcesPath, 'public/assets/trayicon.ico') // path of y
+var iconpath = (process.env.ELECTRON_START_URL)?path.join(__dirname, '../public/assets/TrayTemplate.png'): path.join(process.resourcesPath, 'public/assets/TrayTemplate.png') // path of y
 // var iconpath = "./IconTemplate.ico" // path of y
 // Register and start hook
 const ioHook = require('iohook');
@@ -45,6 +45,66 @@ function createTrayIcon() {
     });
     appIcon.setContextMenu(contextMenu);
     return appIcon;
+}
+
+function createActivityBar() {
+
+    const screenWidth = screen.getPrimaryDisplay().workAreaSize.width;
+    const screenHeight = screen.getPrimaryDisplay().workAreaSize.height;
+
+    activityBar = new BrowserWindow({
+        show: false,
+        width: 700,
+        height: 35,
+        frame: false, // remove the window frame
+        webPreferences: {
+            preload: path.join(__dirname, "preload.js"),
+            contextIsolation: false, // isolate renderer process from main process
+            // devTools: false
+        },
+        resizable: false,
+        icon: iconpath,
+        minimizable: false,
+        hasShadow: false, // remove the window shadow
+        transparent: true,
+    }); // 
+
+    activityBar.setAlwaysOnTop(true, 'floating',1)
+    activityBar.setPosition(screenWidth / 2 - 350, screenHeight - 35)
+
+    activityBar.webContents.on('before-input-event', (event, input) => {
+        if (input.type === 'keyDown' && (input.key === 'R' && input.control || input.key === 'r' && input.control)) {
+            event.preventDefault();
+        }
+    });
+
+    // Set the rounded corners using CSS
+    activityBar.webContents.once('dom-ready', () => {
+        const secret = keytar.getPassword('app', 'userinfo');
+        secret.then((result) => {
+            if (result) {
+                setTimeout(() => {
+                    activityBar.webContents.send('subWindowAutoLogin', JSON.parse(result));
+                }, 2000)
+            }
+        })
+    })
+    activityBar.webContents.on("new-window", (_, url) => {
+        _.preventDefault();
+        const protocol = require("url").parse(url).protocol;
+        if (protocol === "http:" || protocol === "https:") {
+            shell.openExternal(url);
+        }
+    });
+    const activityUrl = process.env.ELECTRON_ACTIVITY_URL || url.format({
+        pathname: path.join(__dirname, '../index.html'),
+        protocol: 'file:',
+        slashes: true
+    });
+    activityBar.loadURL(activityUrl);
+    activityBar.on('closed', function () {
+        activityBar = null;
+    });
 }
 
 function createWindow() {
@@ -127,64 +187,12 @@ function createWindow() {
             } else
                 activityBar.hide()
         })
-
+        
         //////////////////////////------ACTIVITY BAR---/////////////////////////////////
-        const screenWidth = screen.getPrimaryDisplay().workAreaSize.width;
-        const screenHeight = screen.getPrimaryDisplay().workAreaSize.height;
-        activityBar = new BrowserWindow({
-            show: false,
-            width: 700,
-            height: 35,
-            frame: false, // remove the window frame
-            webPreferences: {
-                preload: path.join(__dirname, "preload.js"),
-                contextIsolation: false, // isolate renderer process from main process
-                // devTools: false
-            },
-            resizable: false,
-            icon: iconpath,
-            minimizable: false,
-            hasShadow: false, // remove the window shadow
-            transparent: true,
-        }); // 
+        createActivityBar()
 
-        activityBar.setAlwaysOnTop(true, 'floating')
-        activityBar.setPosition(screenWidth / 2 - 350, screenHeight - 35)
-
-        activityBar.webContents.on('before-input-event', (event, input) => {
-            if (input.type === 'keyDown' && (input.key === 'R' && input.control || input.key === 'r' && input.control)) {
-                event.preventDefault();
-            }
-        });
-
-        // Set the rounded corners using CSS
-        activityBar.webContents.once('dom-ready', () => {
-            const secret = keytar.getPassword('app', 'userinfo');
-            secret.then((result) => {
-                if (result) {
-                    setTimeout(() => {
-                        activityBar.webContents.send('subWindowAutoLogin', JSON.parse(result));
-                    }, 2000)
-                }
-            })
-        })
-        activityBar.webContents.on("new-window", (_, url) => {
-            _.preventDefault();
-            const protocol = require("url").parse(url).protocol;
-            if (protocol === "http:" || protocol === "https:") {
-                shell.openExternal(url);
-            }
-        });
-        const activityUrl = process.env.ELECTRON_ACTIVITY_URL || url.format({
-            pathname: path.join(__dirname, '../index.html'),
-            protocol: 'file:',
-            slashes: true
-        });
-        activityBar.loadURL(activityUrl);
-        activityBar.on('closed', function () {
-            activityBar = null;
-        });
     })
+
     const loadingUrl = url.format({
         pathname: path.join(__dirname, '../loading.html'),
         protocol: 'file:',
@@ -282,6 +290,17 @@ ipcMain.on("getFakescreenshot", (event, _) => {
     const pathAsset = (process.env.ELECTRON_START_URL) ? path.join(__dirname,'../public/assets/screenshot_disabled.jpg') : path.join(process.resourcesPath, 'public/assets/screenshot_disabled.jpg')
     const img=fs.readFileSync(pathAsset).toString('base64')
     event.sender.send("getFakescreenshot",img)
+
+});
+
+ipcMain.on("createScreenShot", (event, _) => {
+    
+    const displays = screen.getAllDisplays();
+    console.log(displays)
+    //const pathAsset = (process.env.ELECTRON_START_URL) ? path.join(__dirname,'../public/assets/screenshot_disabled.jpg') : path.join(process.resourcesPath, 'public/assets/screenshot_disabled.jpg')
+    //const img=fs.readFileSync(pathAsset).toString('base64')
+    
+    //event.sender.send("createScreenShot",img)
 
 });
 
