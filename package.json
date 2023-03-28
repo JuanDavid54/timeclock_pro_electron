@@ -69,6 +69,7 @@
     "sass": "^1.58.3"
   },
   "build": {
+    "compression": "maximum",
     "extends": null,
     "files": [
       "build/**/*",
