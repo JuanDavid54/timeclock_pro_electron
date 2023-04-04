@@ -5,7 +5,6 @@
   "productName": "Staffmonitor",
   "main": "electron/main.js",
   "dependencies": {
-    "15": "^0.0.0",
     "@emotion/react": "^11.10.5",
     "@emotion/styled": "^11.10.5",
     "@hookform/resolvers": "^2.9.10",
@@ -51,7 +50,8 @@
     "package-arm": "electron-builder build --mac -c.extraMetadata.main=build/electron/main.js --config.target=x64 --publish never",
     "package-test": "electron-builder build --mac -c.extraMetadata.main=/electron/main.js --arm64 --publish never",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "rebuild": "electron-rebuild -f -w iohook"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -66,11 +66,11 @@
     "@babel/preset-react": "^7.10.4",
     "electron": "^12.2.3",
     "electron-builder": "^23.6.0",
+    "electron-rebuild": "^3.2.9",
     "sass": "^1.58.3"
   },
   "build": {
     "compression": "maximum",
-    "extends": null,
     "files": [
       "build/**/*",
       "node_modules/**/*"

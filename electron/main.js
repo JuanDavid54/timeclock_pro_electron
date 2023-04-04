@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen,systemPreferences } = require('electron');
 const path = require('path');
 const url = require('url');
 const keytar = require('keytar');
@@ -9,7 +9,6 @@ const autoLaunch = new AutoLaunch({
     name: 'StaffMonitor',
     path: app.getPath('exe'),
 });
-
 
 let mainWindow, loadingWindow, activityBar, trayIcon, isLogged = false;
 //var iconpath = path.join(__dirname, '../public/assets/TrayTemplate.png') // path of y
@@ -107,7 +106,8 @@ function createActivityBar() {
     });
 }
 
-function createWindow() {
+async function createWindow() {
+    
     setInitialAppSettings()
 
     const width = 1200, height = 800;
@@ -201,7 +201,11 @@ function createWindow() {
     loadingWindow.loadURL(loadingUrl)
     loadingWindow.show()
 }
-app.on('ready', () => createWindow());
+app.on('ready', () => {
+
+    //app.accessibility.isTrustedPrompt = () => true
+    createWindow()
+});
 app.on('window-all-closed', function () {
     if (process.platform !== 'darwin') {
         ioHook.stop();
@@ -242,7 +246,11 @@ ipcMain.on("showMainWindow", () => {
 
 // send data to sub window
 ipcMain.on('sendDataToSubWindow', (event, data) => {
-    activityBar.webContents.send('fromMainWindow', data);
+    
+    if(activityBar){
+        activityBar.webContents.send('fromMainWindow', data);
+    }
+
 })
 // send data to main window
 ipcMain.on('sendDataToMainWindow', (event, data) => {
@@ -293,18 +301,8 @@ ipcMain.on("getFakescreenshot", (event, _) => {
 
 });
 
-ipcMain.on("createScreenShot", (event, _) => {
-    
-    const displays = screen.getAllDisplays();
-    console.log(displays)
-    //const pathAsset = (process.env.ELECTRON_START_URL) ? path.join(__dirname,'../public/assets/screenshot_disabled.jpg') : path.join(process.resourcesPath, 'public/assets/screenshot_disabled.jpg')
-    //const img=fs.readFileSync(pathAsset).toString('base64')
-    
-    //event.sender.send("createScreenShot",img)
-
-});
-
 async function setInitialAppSettings() {
+
     const settings = await getAppSettings()
     if (!settings) {
         keytar.setPassword('app', 'settings', JSON.stringify({ "visibility": true, "startup": false, "isRemind": true, "days": [1, 2, 3, 4, 5], "mins": "15", "time_from": "2014-08-18T00:00:00", "time_to": "2014-08-18T00:15:00" }))

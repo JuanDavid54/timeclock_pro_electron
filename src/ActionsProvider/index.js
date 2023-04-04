@@ -56,11 +56,13 @@ const SaveActions = (props) => {
         const mouseClickEvent = () => {
             setMouseClicked(prev => prev + 1)
         }
+        
         window.electronAPI.ipcRenderer.on("mouseclick", mouseClickEvent)
 
         const keydownEvent = () => {
             setKeyDown(prev => prev + 1)
         }
+
         window.electronAPI.ipcRenderer.on("keydown", keydownEvent)
 
         return () => {

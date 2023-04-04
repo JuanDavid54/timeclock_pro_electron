@@ -1,3 +1,4 @@
+
 const { contextBridge, ipcRenderer, desktopCapturer } = require('electron')
 const electron = require('electron')
 window.electronAPI = {
@@ -10,6 +11,7 @@ window.electronAPI = {
 };
 
 window.electron = electron;
+window.systemPreferences=electron.systemPreferences
 
 // : {s
 //     ...ipcRenderer,
