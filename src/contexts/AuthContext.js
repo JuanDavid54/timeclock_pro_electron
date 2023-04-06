@@ -17,6 +17,8 @@ const defaultProvider = {
     setLoading: () => Boolean,
     login: () => Promise.resolve(),
     logout: () => Promise.resolve(),
+    setHandleCheckAndUpdateAuthHeader: () => null,
+    handleCheckAndUpdateAuthHeader:null
 }
 const AuthContext = createContext(defaultProvider)
 
@@ -26,6 +28,7 @@ const AuthProvider = ({ children, ...props }) => {
     const [logRemember, setRemember] = useState(false)
     const [user, setUser] = useState(defaultProvider.user)
     const [loading, setLoading] = useState(defaultProvider.loading)
+    const [handleCheckAndUpdateAuthHeader, setHandleCheckAndUpdateAuthHeader] = useState(defaultProvider.handleCheckAndUpdateAuthHeader)
 
     const navigate = useNavigate();
 
@@ -39,7 +42,6 @@ const AuthProvider = ({ children, ...props }) => {
                     setRemember(rememberMe)
                     if (rememberMe) {
                         autoAuth(result, "/")
-                        checkAndUpdateAuthHeader(result)
                     }
                 } catch {
 
@@ -63,7 +65,12 @@ const AuthProvider = ({ children, ...props }) => {
                         rememberMe: logRemember
                     }
 
-                    window.electronAPI.ipcRenderer.send("saveAccessToken", keytarData)
+                    if(logRemember){
+                        window.ipcRenderer.send("saveAccessToken", keytarData)
+                    }else{
+                        window.ipcRenderer.send("saveAccessToken", {access: "",refresh:"",rememberMe: logRemember})    
+                    }
+
                     resolve(data.access)
                 }).catch(err => {
                     reject(null)
@@ -74,6 +81,8 @@ const AuthProvider = ({ children, ...props }) => {
 
     const autoAuth = async (result, url) => {
         const { access, refresh } = result;
+
+        checkAndUpdateAuthHeader({ access, refresh })
 
         if (access) { // logged in
             var decoded = jwt_decode(access);
@@ -122,24 +131,30 @@ const AuthProvider = ({ children, ...props }) => {
             })
     }
 
+    const RefreshToken= async ({ access, refresh }) => {
+ 
+        if (!access || !refresh){
+            return;
+        }
+
+        let decoded = jwt_decode(access);
+        let currentTime = Math.floor(Date.now() / 1000);
+
+        if (decoded.exp - currentTime > 0) {
+            return
+        }
+        
+        let newToken = await getNewAccessToken(refresh)
+        access = newToken;
+        if (newToken) {
+            axios.defaults.headers.common['Authorization'] = "Bearer " + newToken;
+        }
+        
+    }
+
     const checkAndUpdateAuthHeader = (data) => {
-        let { access, refresh } = data;
-
-        setInterval(async () => {
-            if (!access || !refresh) 
-                return;
-
-            var decoded = jwt_decode(access);
-            let currentTime = Math.floor(Date.now() / 1000);
-
-            if (decoded.exp - currentTime < 0) {
-                let newToken = await getNewAccessToken(refresh)
-                access = newToken;
-                if (newToken) {
-                    axios.defaults.headers.common['Authorization'] = "Bearer " + newToken;
-                }
-            }
-        }, 1000)
+        if(!handleCheckAndUpdateAuthHeader)
+            setHandleCheckAndUpdateAuthHeader(setInterval(()=>RefreshToken(data),1000))
     }
 
     const handleLogout = () => {
