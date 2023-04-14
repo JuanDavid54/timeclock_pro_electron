@@ -29,6 +29,7 @@ const AuthProvider = ({ children, ...props }) => {
     const [user, setUser] = useState(defaultProvider.user)
     const [loading, setLoading] = useState(defaultProvider.loading)
     const [handleCheckAndUpdateAuthHeader, setHandleCheckAndUpdateAuthHeader] = useState(defaultProvider.handleCheckAndUpdateAuthHeader)
+    const [counter, setCounter] = useState(0)
 
     const navigate = useNavigate();
 
@@ -52,30 +53,42 @@ const AuthProvider = ({ children, ...props }) => {
         window.electronAPI.ipcRenderer.on('subWindowAutoLogin', (e, result) => {
             autoAuth(result, "/activity")
         })
+
+        window.electronAPI.ipcRenderer.on('LogoutMnuClick', async (event, result) => {
+            
+            const keytarData = {
+                access: "",
+                refresh:  "",
+                rememberMe: false
+            }
+            
+            window.electronAPI.ipcRenderer.send("saveAccessToken", keytarData)
+            navigate("/login")
+            
+        })
+
     }, [])
 
-    const getNewAccessToken = (refresh) => {
-        return new Promise((resolve, reject) => {
-            axios
-                .post(proxy + "https://panel.staffmonitor.app/api/token/refresh", { token: refresh })
-                .then(({ data }) => {
-                    let keytarData = {
-                        access: data.access,
-                        refresh: data.refresh,
-                        rememberMe: logRemember
-                    }
+    const getNewAccessToken = async (refresh) => {
 
-                    if(logRemember){
-                        window.ipcRenderer.send("saveAccessToken", keytarData)
-                    }else{
-                        window.ipcRenderer.send("saveAccessToken", {access: "",refresh:"",rememberMe: logRemember})    
-                    }
+        try {
 
-                    resolve(data.access)
-                }).catch(err => {
-                    reject(null)
-                })
-        })
+            const { data } = await axios.post(proxy + "https://panel.staffmonitor.app/api/token/refresh", { token: refresh })
+
+            const keytarData = {
+                access: logRemember ? data.access : "",
+                refresh: logRemember ? data.refresh : "",
+                rememberMe: logRemember
+            }
+
+            checkAndUpdateAuthHeader({ access: data.access, refresh: data.refresh })
+            window.electronAPI.ipcRenderer.send("saveAccessToken", keytarData)
+            return data.access
+
+        } catch (error) {
+            return null
+        }
+
     }
 
 
@@ -124,37 +137,52 @@ const AuthProvider = ({ children, ...props }) => {
                 }
                 window.electronAPI.ipcRenderer.send("saveAccessToken", keytarData)
                 autoAuth(keytarData, "/")
-                checkAndUpdateAuthHeader(response.data)
+                //checkAndUpdateAuthHeader(response.data)
             })
             .catch(err => {
                 if (errorCallback) errorCallback(err)
             })
     }
 
-    const RefreshToken= async ({ access, refresh }) => {
- 
-        if (!access || !refresh){
+    const RefreshToken = async ({ access, refresh }) => {
+
+        if (!access || !refresh) {
             return;
         }
 
-        let decoded = jwt_decode(access);
-        let currentTime = Math.floor(Date.now() / 1000);
-
-        if (decoded.exp - currentTime > 0) {
-            return
-        }
-        
-        let newToken = await getNewAccessToken(refresh)
+        const newToken = await getNewAccessToken(refresh)
         access = newToken;
         if (newToken) {
             axios.defaults.headers.common['Authorization'] = "Bearer " + newToken;
         }
-        
+
     }
 
     const checkAndUpdateAuthHeader = (data) => {
-        if(!handleCheckAndUpdateAuthHeader)
-            setHandleCheckAndUpdateAuthHeader(setInterval(()=>RefreshToken(data),1000))
+
+        setHandleCheckAndUpdateAuthHeader((handleCheckAndUpdateAuthHeader) => {
+            if (handleCheckAndUpdateAuthHeader) {
+                clearInterval(handleCheckAndUpdateAuthHeader)
+            }
+            return null;
+        })
+
+        setHandleCheckAndUpdateAuthHeader(
+            setInterval(() =>
+                setCounter((counter) => {
+                    console.log((counter/60).toFixed(0)," mins")
+                    if (counter < 1200) {
+                        return counter + 1
+                    } else {
+                        RefreshToken(data)
+                        return 0
+                    }
+
+                })
+                , 1000)
+        )
+
+
     }
 
     const handleLogout = () => {
