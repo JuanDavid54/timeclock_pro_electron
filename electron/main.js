@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen,systemPreferences,dialog } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen,systemPreferences,dialog,powerMonitor } = require('electron');
 const path = require('path');
 const url = require('url');
 const keytar = require('keytar');
@@ -183,7 +183,7 @@ function createActivityBar() {
     });
 }
 
-async function createWindow() {
+function createWindow() {
     
     setInitialAppSettings()
 
@@ -267,7 +267,7 @@ async function createWindow() {
         
         //////////////////////////------ACTIVITY BAR---/////////////////////////////////
         createActivityBar()
-
+        //mainWindow.webContents.openDevTools()
     })
 
     const loadingUrl = url.format({
@@ -279,9 +279,50 @@ async function createWindow() {
     loadingWindow.show()
 }
 app.on('ready', () => {
+    
+    //It is detected when the computer comes out of hibernation.
+    powerMonitor.on('resume', () => {
+
+        if(!isLogged){
+            return
+        }
+
+        try {
+            setTimeout( async ()=>{
+
+                const secret = JSON.parse(await keytar.getPassword('app', 'userinfo'));
+                //If the 'remember' option is enabled, refreshes the token.
+                if(secret.refresh){
+                
+                    mainWindow?.webContents.send("refreshtoken_on_resume",secret)
+                
+                }else{
+        
+                    //If the 'remember' option is disabled, returns to the login screen.
+                    mainWindow?.webContents.send("LogoutMnuClick")
+                    activityBar?.webContents.send('fromMainWindow', { working: false, name: "", startInterval: 0 });
+                    activityBar?.hide()
+                    isLogged = false
+
+                }  
+                
+            },2000) 
+
+        } catch (error) {
+
+            console.log(error)   
+
+        }
+
+        
+    });
+
     createAppMenu()
     createWindow()
+    
+
 });
+
 app.on('window-all-closed', function () {
     if (process.platform !== 'darwin') {
         ioHook.stop();
