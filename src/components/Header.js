@@ -261,12 +261,67 @@ const Header = () => {
     }
   }
 
-  const createSession = (project) => {
-    axios
+  const createSession = async (project) => {
+    
+    
+    try {
+
+      const response = await axios.get(proxy + "https://panel.staffmonitor.app/api/sessions?page=1&per-page=1", {
+        params: {
+          "per-page": 1,
+          "sort": "-clockIn",
+          "filter": { "clockOut": null }
+        }
+      })
+
+      if (response.data.length > 0 && !response.data[0].clockOut) {
+
+        startWork(response.data[0])
+        dispatch(selectProject(response.data[0].project, true))
+
+        const breaks = await axios.get(proxy + "https://panel.staffmonitor.app/api/breaks", {
+          params: {
+            "page": 1,
+            "per-page": 20,
+            "sort": "start",
+            "filter": { "sessionId": response.data[0].id }
+          }
+        })
+
+        if (breaks.data.length > 0) {
+          const temp = breaks.data.find(item => item.end === null)
+          if (temp) {
+            startBreak(temp)
+          }
+
+        }
+
+        getSummary()
+
+      } else {
+
+        const res = await axios.post(
+          proxy + "https://panel.staffmonitor.app/api/sessions", {
+          clockIn: Math.floor(Date.now() / 1000),
+          projectId: project ? project.id : null,
+          source: "desktop"
+        })
+
+        startWork(res.data)
+      }
+
+    } catch (err) {
+      if (err && err.response && err.response.data) {
+        let errors = err.response.data;
+        errors.length > 0 && alert(errors[0].message)
+      }
+    }
+    /*axios
       .post(
         proxy + "https://panel.staffmonitor.app/api/sessions", {
         clockIn: Math.floor(Date.now() / 1000),
-        projectId: project ? project.id : null
+        projectId: project ? project.id : null,
+        source: "desktop"
       })
       .then(res => {
         startWork(res.data)
@@ -280,7 +335,7 @@ const Header = () => {
           errors.length > 0
             && alert(errors[0].message)
         }
-      })
+      })*/
   }
 
   const breakButtonClicked = (type) => {

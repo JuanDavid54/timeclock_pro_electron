@@ -8,6 +8,7 @@ import axios from "axios"
 
 import useEffectOnce from "../components/useEffectOnce"
 import { proxy } from "../actions/config"
+import {useInterval} from "../hooks/useInterval"
 
 // ** Defaults
 const defaultProvider = {
@@ -28,9 +29,29 @@ const AuthProvider = ({ children, ...props }) => {
     const [logRemember, setRemember] = useState(false)
     const [user, setUser] = useState(defaultProvider.user)
     const [loading, setLoading] = useState(defaultProvider.loading)
-    const [handleCheckAndUpdateAuthHeader, setHandleCheckAndUpdateAuthHeader] = useState(defaultProvider.handleCheckAndUpdateAuthHeader)
+    const [counter, setCounter] = useState(0)
+    const [delayCheckAndUpdateAuthHeader, setDelayCheckAndUpdateAuthHeader] = useState(null);
+    const [authData, setAuthData] = useState(null);
 
     const navigate = useNavigate();
+
+    useInterval(async () => {
+
+        if(counter<1200){
+            
+            setCounter(counter+1)   
+
+        }else{
+            
+            if(authData){
+                await RefreshToken(authData)
+            }
+
+            setCounter(0)
+
+        }
+
+    }, delayCheckAndUpdateAuthHeader);
 
     useEffectOnce(() => {
         console.log(window)
@@ -50,39 +71,70 @@ const AuthProvider = ({ children, ...props }) => {
         })
         
         window.electronAPI.ipcRenderer.on('subWindowAutoLogin', (e, result) => {
+            const { rememberMe } = result;
+            setRemember(rememberMe)
             autoAuth(result, "/activity")
         })
+
+        window.electronAPI.ipcRenderer.on('LogoutMnuClick', async (event, result) => {
+            
+            setDelayCheckAndUpdateAuthHeader(null)
+            setCounter(0) 
+
+            const keytarData = {
+                access: "",
+                refresh:  "",
+                rememberMe: false
+            }
+            
+   
+            window.electronAPI.ipcRenderer.send("saveAccessToken", keytarData)
+            navigate("/login")
+            
+        })
+
+        window.electronAPI.ipcRenderer.on('refreshtoken_on_resume', async (event, result) => {
+            setDelayCheckAndUpdateAuthHeader(1000)
+            setCounter(0)  
+            RefreshToken(result)
+        })
+
     }, [])
 
-    const getNewAccessToken = (refresh) => {
-        return new Promise((resolve, reject) => {
-            axios
-                .post(proxy + "https://panel.staffmonitor.app/api/token/refresh", { token: refresh })
-                .then(({ data }) => {
-                    let keytarData = {
-                        access: data.access,
-                        refresh: data.refresh,
-                        rememberMe: logRemember
-                    }
+    const getNewAccessToken = async (refresh) => {
 
-                    if(logRemember){
-                        window.ipcRenderer.send("saveAccessToken", keytarData)
-                    }else{
-                        window.ipcRenderer.send("saveAccessToken", {access: "",refresh:"",rememberMe: logRemember})    
-                    }
+        try {
 
-                    resolve(data.access)
-                }).catch(err => {
-                    reject(null)
-                })
-        })
+            const { data } = await axios.post(proxy + "https://panel.staffmonitor.app/api/token/refresh", { token: refresh })
+
+            setRemember((logRemember) => {
+
+                const keytarData = {
+                    access: logRemember ? data.access : "",
+                    refresh: logRemember ? data.refresh : "",
+                    rememberMe: logRemember
+                }
+
+                setAuthData({access:data.access,refresh:data.refresh,rememberMe: logRemember})
+                window.electronAPI.ipcRenderer.send("saveAccessToken", keytarData)
+
+                return logRemember;
+            })
+
+            return data.access
+
+        } catch (error) {
+            return null
+        }
+
     }
 
 
     const autoAuth = async (result, url) => {
         const { access, refresh } = result;
 
-        checkAndUpdateAuthHeader({ access, refresh })
+        setAuthData(result)
+        setDelayCheckAndUpdateAuthHeader(1000)
 
         if (access) { // logged in
             var decoded = jwt_decode(access);
@@ -122,39 +174,29 @@ const AuthProvider = ({ children, ...props }) => {
                     refresh,
                     rememberMe: params.rememberMe
                 }
+
+                setRemember(params.rememberMe)
                 window.electronAPI.ipcRenderer.send("saveAccessToken", keytarData)
                 autoAuth(keytarData, "/")
-                checkAndUpdateAuthHeader(response.data)
+  
             })
             .catch(err => {
                 if (errorCallback) errorCallback(err)
             })
     }
 
-    const RefreshToken= async ({ access, refresh }) => {
- 
-        if (!access || !refresh){
+    const RefreshToken = async ({ access, refresh }) => {
+
+        if (!access || !refresh) {
             return;
         }
 
-        let decoded = jwt_decode(access);
-        let currentTime = Math.floor(Date.now() / 1000);
-
-        if (decoded.exp - currentTime > 0) {
-            return
-        }
-        
-        let newToken = await getNewAccessToken(refresh)
+        const newToken = await getNewAccessToken(refresh)
         access = newToken;
         if (newToken) {
             axios.defaults.headers.common['Authorization'] = "Bearer " + newToken;
         }
-        
-    }
 
-    const checkAndUpdateAuthHeader = (data) => {
-        if(!handleCheckAndUpdateAuthHeader)
-            setHandleCheckAndUpdateAuthHeader(setInterval(()=>RefreshToken(data),1000))
     }
 
     const handleLogout = () => {

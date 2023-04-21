@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen,systemPreferences } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen,systemPreferences,dialog,powerMonitor } = require('electron');
 const path = require('path');
 const url = require('url');
 const keytar = require('keytar');
@@ -44,6 +44,83 @@ function createTrayIcon() {
     });
     appIcon.setContextMenu(contextMenu);
     return appIcon;
+}
+
+function createAppMenu() {
+
+    const template = [{
+        label: app.name,
+        submenu: [
+            {
+                label: 'Logout',
+                click: async () => {
+
+                    if (!isLogged) {
+                        return
+                    }
+
+                    const choice = await dialog.showMessageBox(
+                        mainWindow,
+                        {
+                            type: 'question',
+                            defaultId: 0,
+                            cancelId: 1,
+                            buttons: ['Yes', 'No'],
+                            title: 'staffmonitor',
+                            message: 'Log out?'
+                        }
+                    );
+
+                    if (choice.response === 0) {
+                        mainWindow?.webContents.send("LogoutMnuClick")
+                        activityBar?.webContents.send('fromMainWindow', { working: false, name: "", startInterval: 0 });
+                        activityBar?.hide()
+                        isLogged = false
+                    }
+                }
+            },
+            {
+                label: 'Exit',
+                click: async () => {
+
+                    const choice = await dialog.showMessageBox(
+                        mainWindow,
+                        {
+                            type: 'question',
+                            defaultId: 0,
+                            cancelId: 1,
+                            buttons: ['Yes', 'No'],
+                            title: 'staffmonitor',
+                            message: 'Do you want to exit the application?'
+                        }
+                    );
+
+                    if (choice.response === 0) {
+                        app.isQuiting = true;
+                        ioHook.stop();
+                        app.quit();
+                    }
+
+                }
+            }
+        ]
+    },
+    {
+        role: 'help',
+        submenu: [
+          {
+            label: 'Learn More',
+            click: async () => {
+              shell.openExternal('https://staffmonitor.app')
+            }
+          }
+        ]
+    }
+    ]
+
+    const menu = Menu.buildFromTemplate(template)
+    Menu.setApplicationMenu(menu)
+
 }
 
 function createActivityBar() {
@@ -106,7 +183,7 @@ function createActivityBar() {
     });
 }
 
-async function createWindow() {
+function createWindow() {
     
     setInitialAppSettings()
 
@@ -190,7 +267,7 @@ async function createWindow() {
         
         //////////////////////////------ACTIVITY BAR---/////////////////////////////////
         createActivityBar()
-
+        //mainWindow.webContents.openDevTools()
     })
 
     const loadingUrl = url.format({
@@ -202,10 +279,50 @@ async function createWindow() {
     loadingWindow.show()
 }
 app.on('ready', () => {
+    
+    //It is detected when the computer comes out of hibernation.
+    powerMonitor.on('resume', () => {
 
-    //app.accessibility.isTrustedPrompt = () => true
+        if(!isLogged){
+            return
+        }
+
+        try {
+            setTimeout( async ()=>{
+
+                const secret = JSON.parse(await keytar.getPassword('app', 'userinfo'));
+                //If the 'remember' option is enabled, refreshes the token.
+                if(secret.refresh){
+                
+                    mainWindow?.webContents.send("refreshtoken_on_resume",secret)
+                
+                }else{
+        
+                    //If the 'remember' option is disabled, returns to the login screen.
+                    mainWindow?.webContents.send("LogoutMnuClick")
+                    activityBar?.webContents.send('fromMainWindow', { working: false, name: "", startInterval: 0 });
+                    activityBar?.hide()
+                    isLogged = false
+
+                }  
+                
+            },2000) 
+
+        } catch (error) {
+
+            console.log(error)   
+
+        }
+
+        
+    });
+
+    createAppMenu()
     createWindow()
+    
+
 });
+
 app.on('window-all-closed', function () {
     if (process.platform !== 'darwin') {
         ioHook.stop();
