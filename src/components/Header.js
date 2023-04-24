@@ -299,12 +299,15 @@ const Header = () => {
         getSummary()
 
       } else {
+        
+        const { rateCurrency } = await getProfile()
 
         const res = await axios.post(
           proxy + "https://panel.staffmonitor.app/api/sessions", {
           clockIn: Math.floor(Date.now() / 1000),
           projectId: project ? project.id : null,
-          source: "desktop"
+          source: "desktop",
+          rateCurrency
         })
 
         startWork(res.data)
@@ -381,6 +384,19 @@ const Header = () => {
 
   const notWorking = () => {
     startButtonClicked()
+  }
+
+  const getProfile = async () => {
+
+    try {
+
+      const res = await axios.get(proxy + "https://panel.staffmonitor.app/api/profile")
+      return res.data
+
+    } catch (error) {
+      return { rateCurrency: "USD" }
+    }
+
   }
 
   return (

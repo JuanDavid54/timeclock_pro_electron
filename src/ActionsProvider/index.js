@@ -24,7 +24,7 @@ const SaveActions = (props) => {
     useEffectOnce(() => {
 
         window.electronAPI.ipcRenderer.on("displays", (e, data)=>{
-            console.log(data)
+            //console.log(data)
             setDisplays(data)
         })
 
@@ -219,6 +219,79 @@ const SaveActions = (props) => {
 
             } else {
 
+                // Retrieve information about all connected displays and determine the maximum width and height of all displays.
+                //const displays = screen.getAllDisplays();
+                const { width: maxWidth, height: maxHeight } = displays.reduce((acc, display) => {
+                    
+                    const { width, height } = display.workAreaSize;
+                    
+                    return { 
+                        width: Math.max(acc.width, width),
+                        height: Math.max(acc.height, height) 
+                    };
+
+                }, { width: 0, height: 0 });
+
+                // Get sources for windows and screens, and set the thumbnail size to the maximum width and height determined above.
+                desktopCapturer.getSources({
+                    types: ['window', 'screen'],
+                    thumbnailSize: { width: maxWidth, height: maxHeight }
+                }).then(async sources => {
+
+                    const fileNames = [];
+                    // Loop through the retrieved sources.
+                    for (const source of sources) {
+
+                 
+                        if (source.name !== 'Entire Screen' && !source.name.startsWith('Screen ')) continue;
+                        
+                        const fileName = `${uuidv4()}.jpg`;
+                        // Find the display corresponding to the source and set the screen width and height based on the display work area size or the maximum width and height determined above.
+                        const display = displays.find(item => item.id === source.display_id);
+                        const screenWidth = display ? display.workAreaSize.width : maxWidth;
+                        const screenHeight = display ? display.workAreaSize.height : maxHeight;
+                        const outputPath = path.join(os.tmpdir(), fileName);
+
+                        try {
+                            
+                            // Create an Image object and set the source thumbnail as its source, then wait for the image to load.
+                            const img = new Image();
+                            img.src = source.thumbnail.toDataURL();
+                            await new Promise(resolve => { img.onload = resolve; });
+                            
+                            // Create a canvas element, set its dimensions to the screen width and height, and apply a blur effect (if `isBlur` is true). Then draw the image onto the canvas and convert the resulting image data to a base64-encoded JPEG format.
+                            const canvas = document.createElement('canvas');
+                            canvas.width = screenWidth;
+                            canvas.height = screenHeight;
+                            const ctx = canvas.getContext('2d');
+                            ctx.filter = isBlur ? 'blur(6px)' : 'blur(0px)'; // apply a 10px blur effect
+                            ctx.drawImage(img, 0, 0, screenWidth, screenHeight);
+                            const imageDataURL = canvas.toDataURL('image/jpeg', 0.3);
+
+                            // Write the converted image data to a file in the OS temporary directory with the generated file name, and add the file name to an array of file names.
+                            fs.writeFileSync(outputPath, imageDataURL.replace(/^data:image\/jpeg;base64,/, ''), 'base64');
+                            fileNames.push(fileName);
+
+                        } catch (error) {
+                            console.error(error);
+                        }
+
+                    }
+
+                    try {
+                        
+                        //console.log(fileNames)
+                        // Upload the first file in the array to a server using the `uploadFile` function and the remaining files in the array to the same server using the ID of the first file.
+                        const res = await uploadFile(fileNames[0]);
+                        fileNames.slice(1).forEach(item => uploadFile(item, res.data.id));
+
+                    } catch (error) {
+                        console.error('fileUpload:', error);
+                    }
+
+                });
+
+                /*
                 let maxWidth = 0, maxHeight = 0;
                 
                 displays.forEach(item => {
@@ -291,7 +364,7 @@ const SaveActions = (props) => {
                         fileNames.forEach(item => uploadFile(item, res.data.id))
                     }).catch(err => {
                         console.log("fileUpload:", err)
-                    })
+                    })*/
 
             }
 

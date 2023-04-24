@@ -44,7 +44,7 @@ const AuthProvider = ({ children, ...props }) => {
         }else{
             
             if(authData){
-                await RefreshToken(authData)
+                RefreshToken(authData)
             }
 
             setCounter(0)
@@ -54,7 +54,7 @@ const AuthProvider = ({ children, ...props }) => {
     }, delayCheckAndUpdateAuthHeader);
 
     useEffectOnce(() => {
-        console.log(window)
+        //console.log(window)
         window.electronAPI.ipcRenderer.send("getUserInfo")
         window.electronAPI.ipcRenderer.on('userinfo', (e, result) => {
             if (result) {

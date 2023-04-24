@@ -131,8 +131,8 @@ function createActivityBar() {
     activityBar = new BrowserWindow({
         show: false,
         width: 700,
-        height: 35,
-        frame: false, // remove the window frame
+        height: 30,
+        frame: false,// remove the window frame
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
             contextIsolation: false, // isolate renderer process from main process
@@ -143,10 +143,22 @@ function createActivityBar() {
         minimizable: false,
         hasShadow: false, // remove the window shadow
         transparent: true,
+        maximizable: false,
+        useContentSize: true
     }); // 
 
     activityBar.setAlwaysOnTop(true, 'floating',1)
-    activityBar.setPosition(screenWidth / 2 - 350, screenHeight - 35)
+    activityBar.setPosition(screenWidth / 2 - 350, screenHeight - 30)
+
+   //force the height of the window to 30px.
+    activityBar.setShape([
+        {
+            x: 0,
+            y: 0,
+            width: 700,
+            height: 30
+        }
+    ]);
 
     activityBar.webContents.on('before-input-event', (event, input) => {
         if (input.type === 'keyDown' && (input.key === 'R' && input.control || input.key === 'r' && input.control)) {
@@ -181,6 +193,37 @@ function createActivityBar() {
     activityBar.on('closed', function () {
         activityBar = null;
     });
+
+    activityBar.on('show', function (event) {
+
+        try {
+
+            //Remove the background of the body to use the transparent property of the browser window.
+            const css = `
+            body {
+                font-family: 'Montserrat';
+                font-style: normal;
+                background-color: transparent;
+            }
+            `
+            activityBar?.webContents.executeJavaScript(`
+                function disableBackground(){
+                    const style = document.createElement('style')
+                    style.innerHTML = ${JSON.stringify(css)}
+                    document.head.appendChild(style)
+                    return true
+                }
+
+                disableBackground()
+            `)
+
+        } catch (error) {
+            console.log("Error",error.message)       
+        }
+
+
+    })
+
 }
 
 function createWindow() {
@@ -243,6 +286,7 @@ function createWindow() {
             if (!app.isQuiting) {
                 event.preventDefault();
                 mainWindow.hide();
+                app.dock.hide();
                 const { visibility } = await getAppSettings()
                 if ((visibility == "true" || visibility === true) && isLogged == true) {
                     activityBar.show()
@@ -258,6 +302,7 @@ function createWindow() {
         mainWindow.on('minimize', async function (event) {
             event.preventDefault()
             mainWindow.hide()
+            app.dock.hide();
             const { visibility } = await getAppSettings()
             if ((visibility == "true" || visibility === true) && isLogged == true) {
                 activityBar.show()
@@ -265,6 +310,10 @@ function createWindow() {
                 activityBar.hide()
         })
         
+        mainWindow.on('show', async function (event) {
+            app.dock.show();   
+        })
+
         //////////////////////////------ACTIVITY BAR---/////////////////////////////////
         createActivityBar()
         //mainWindow.webContents.openDevTools()
