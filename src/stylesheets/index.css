@@ -286,6 +286,7 @@ main .page-content .tb-content .divider {
 .activity-bar .left .icon-button svg {
   font-size: 13px !important;
 }
+
 .activity-bar .left .dot {
   background-color: #00be77;
   width: 8px;
@@ -293,6 +294,15 @@ main .page-content .tb-content .divider {
   border-radius: 100%;
   margin: 0 8px;
 }
+
+.activity-bar .left .reddot {
+  background-color: red;
+  width: 8px;
+  height: 8px;
+  border-radius: 100%;
+  margin: 0 8px;
+}
+
 .activity-bar .left .project {
   font-size: 13px;
 }
@@ -449,3 +459,60 @@ main {
 }
 
 /*# sourceMappingURL=index.css.map */
+
+
+.circular-progress-primary {
+  display: inline-block;
+  width: 31px;
+  height: 31px;
+}
+
+.circular-progress-primary:after {
+  content: " ";
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: 2px;
+  border-radius: 50%;
+  border: 3px solid #283e59;
+  border-color: #283e59 transparent #283e59 transparent;
+  animation: circular-progress-primary 1.2s linear infinite;
+}
+
+@keyframes circular-progress-primary {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.circular-progress-secondary {
+  display: inline-block;
+  width: 31px;
+  height: 31px;
+}
+
+.circular-progress-secondary:after {
+  content: " ";
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: 2px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  border-color: #fff transparent #fff transparent;
+  animation: circular-progress-secondary 1.2s linear infinite;
+}
+
+@keyframes circular-progress-secondary {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}

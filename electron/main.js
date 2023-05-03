@@ -418,6 +418,12 @@ ipcMain.on('sendDataToSubWindow', (event, data) => {
     }
 
 })
+
+// send data to sub window 
+ipcMain.on('sendDataToSubWindowBreakStatus', (event, data) => {
+    activityBar.webContents.send('fromMainWindowBreakStatus', data);
+})
+
 // send data to main window
 ipcMain.on('sendDataToMainWindow', (event, data) => {
     mainWindow.webContents.send('fromSubWindow', data);

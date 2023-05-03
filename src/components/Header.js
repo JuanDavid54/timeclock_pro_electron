@@ -13,6 +13,7 @@ import Button from '@mui/material/Button';
 import StopIcon from '@mui/icons-material/Stop';
 import PauseIcon from '@mui/icons-material/Pause';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import CircularProgress from "./CircularProgress"
 
 import MonitorModal from './MonitorModal';
 import ReminderModal from './ReminderModal';
@@ -38,6 +39,7 @@ const Header = () => {
 
   const [isWorking, setIsWorking] = useState(false)
   const [isBreaking, setIsBreaking] = useState(false)
+  const [isFetching, setIsFetching] = useState(false)
 
   const [workedTime, setWorkedTime] = useState(0)
   const [breakedTime, setBreakedTime] = useState(0)
@@ -100,7 +102,14 @@ const Header = () => {
   useEffect(() => {
     if (subWinData) {
       if (subWinData.working) {
-        endWork()
+        
+        //endWork()
+        if(!subWinData.breaking){
+          endWork()
+        }else{
+          breakButtonClicked()
+        }
+
       } else {
         createSession()
       }
@@ -113,9 +122,11 @@ const Header = () => {
       && !selectedProject.notInit
     ) {
       if (isWorking) {
+        
         endWork(() => {
           createSession(selectedProject)
         })
+
       } else {
         startButtonClicked(selectedProject)
       }
@@ -172,7 +183,8 @@ const Header = () => {
   }
 
   const endWork = (callback = null) => {
-    sendDataToSubWindow({ working: false })
+    setIsFetching(true)
+    
     axios
       .put(
         proxy + `https://panel.staffmonitor.app/api/sessions/${workInfo.id}`,
@@ -192,7 +204,12 @@ const Header = () => {
         breakTimer.current && clearInterval(breakTimer.current)
         callback && callback()
         getSummary()
+
+        sendDataToSubWindow({ working: false })
+        setIsFetching(false)
+
       }).catch(err => {
+        setIsFetching(false)
         if (
           err
           && err.response
@@ -208,6 +225,8 @@ const Header = () => {
   const startBreak = (data, type = 3) => {
     setBreakInfo(data)
     setIsBreaking(true)
+    sendDataToSubWindowBreakStatus(true)
+
     breakTimer.current = setInterval(() => {
       if (type === 1) {
         if (passedTime(data.start) > 900)
@@ -237,8 +256,8 @@ const Header = () => {
       .then(res => {
         setIsBreaking(false)
         setBreakedTime(0)
-
         clearInterval(breakTimer.current)
+        sendDataToSubWindowBreakStatus(false)
       }).catch(err => {
         if (
           err
@@ -263,7 +282,7 @@ const Header = () => {
 
   const createSession = async (project) => {
     
-    
+    setIsFetching(true)
     try {
 
       const response = await axios.get(proxy + "https://panel.staffmonitor.app/api/sessions?page=1&per-page=1", {
@@ -312,8 +331,9 @@ const Header = () => {
 
         startWork(res.data)
       }
-
+      setIsFetching(false)
     } catch (err) {
+      setIsFetching(false)
       if (err && err.response && err.response.data) {
         let errors = err.response.data;
         errors.length > 0 && alert(errors[0].message)
@@ -372,6 +392,10 @@ const Header = () => {
     window.electronAPI.ipcRenderer.send("sendDataToSubWindow", data);
   }
 
+  const sendDataToSubWindowBreakStatus = (data) => {
+    window.electronAPI.ipcRenderer.send("sendDataToSubWindowBreakStatus", data);
+  }
+
   // iddle counter actions
   const wasBreaking = (start, end) => {
     axios.post(
@@ -403,11 +427,17 @@ const Header = () => {
     <>
       <header className="d-flex justify-content-between">
         <div className="player d-flex align-items-center">
-          <Button variant="contained" className="icon-button play" onClick={() => startButtonClicked()}>
-            {
-              isWorking ? <StopIcon /> : <PlayArrowIcon />
-            }
-          </Button>
+          {!isFetching && 
+            <Button variant="contained" className="icon-button play" onClick={() => startButtonClicked()}>
+              {
+                isWorking ? <StopIcon /> : <PlayArrowIcon />
+              }
+            </Button>
+          }
+          {
+            isFetching &&
+            <CircularProgress/>
+          }
           {
             isWorking
             && isBreaking

@@ -1,6 +1,7 @@
 import React, {
     createContext,
-    useState
+    useState,
+    useEffect
 } from 'react'
 import { useNavigate } from "react-router-dom"
 import jwt_decode from "jwt-decode";
@@ -8,7 +9,6 @@ import axios from "axios"
 
 import useEffectOnce from "../components/useEffectOnce"
 import { proxy } from "../actions/config"
-import {useInterval} from "../hooks/useInterval"
 
 // ** Defaults
 const defaultProvider = {
@@ -29,29 +29,52 @@ const AuthProvider = ({ children, ...props }) => {
     const [logRemember, setRemember] = useState(false)
     const [user, setUser] = useState(defaultProvider.user)
     const [loading, setLoading] = useState(defaultProvider.loading)
-    const [counter, setCounter] = useState(0)
-    const [delayCheckAndUpdateAuthHeader, setDelayCheckAndUpdateAuthHeader] = useState(null);
     const [authData, setAuthData] = useState(null);
 
     const navigate = useNavigate();
 
-    useInterval(async () => {
 
-        if(counter<1200){
-            
-            setCounter(counter+1)   
+    useEffect(() => {
 
-        }else{
-            
-            if(authData){
-                RefreshToken(authData)
+        const requestInterceptor = axios.interceptors.request.use(
+
+            config => {
+
+                if ("access" in authData) {
+                    config.headers.Authorization = `Bearer ${authData.access}`;
+                }
+
+                return config;
+
+            },
+            error => Promise.reject(error)
+        );
+
+        const responseInterceptor = axios.interceptors.response.use(
+            response => response,
+            async error => {
+                const originalRequest = error.config;
+                if (
+                    error.response.status === 401 &&
+                    !originalRequest._retry
+                ) {
+                    originalRequest._retry = true;
+                    const newToken = await RefreshToken(authData)//await fetch('url_del_servidor', { method: 'POST' });
+                    console.log("token refrescado:",newToken)
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                    return axios(originalRequest);
+                }
+                return Promise.reject(error);
             }
+        );
 
-            setCounter(0)
+        return () => {
+            // Eliminar los interceptores al desmontar el componente
+            axios.interceptors.request.eject(requestInterceptor);
+            axios.interceptors.response.eject(responseInterceptor);
+        };
 
-        }
-
-    }, delayCheckAndUpdateAuthHeader);
+    }, [authData])
 
     useEffectOnce(() => {
         //console.log(window)
@@ -77,10 +100,7 @@ const AuthProvider = ({ children, ...props }) => {
         })
 
         window.electronAPI.ipcRenderer.on('LogoutMnuClick', async (event, result) => {
-            
-            setDelayCheckAndUpdateAuthHeader(null)
-            setCounter(0) 
-
+         
             const keytarData = {
                 access: "",
                 refresh:  "",
@@ -93,9 +113,7 @@ const AuthProvider = ({ children, ...props }) => {
             
         })
 
-        window.electronAPI.ipcRenderer.on('refreshtoken_on_resume', async (event, result) => {
-            setDelayCheckAndUpdateAuthHeader(1000)
-            setCounter(0)  
+        window.electronAPI.ipcRenderer.on('refreshtoken_on_resume', async (event, result) => { 
             RefreshToken(result)
         })
 
@@ -134,7 +152,6 @@ const AuthProvider = ({ children, ...props }) => {
         const { access, refresh } = result;
 
         setAuthData(result)
-        setDelayCheckAndUpdateAuthHeader(1000)
 
         if (access) { // logged in
             var decoded = jwt_decode(access);
@@ -192,10 +209,14 @@ const AuthProvider = ({ children, ...props }) => {
         }
 
         const newToken = await getNewAccessToken(refresh)
-        access = newToken;
+        //access = newToken;
         if (newToken) {
             axios.defaults.headers.common['Authorization'] = "Bearer " + newToken;
+            return newToken
+        } else {
+            return ""
         }
+
 
     }
 
