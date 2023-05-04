@@ -40,7 +40,10 @@ const AuthProvider = ({ children, ...props }) => {
 
             config => {
 
-                if ("access" in authData) {
+                if(!authData){
+                    return config;
+                }
+                else if ("access" in authData) {
                     config.headers.Authorization = `Bearer ${authData.access}`;
                 }
 
