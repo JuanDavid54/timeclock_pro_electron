@@ -6,10 +6,10 @@
     color: white;
     background-color: #283e59;
     overflow: hidden;
-    height: 36px;
+    height: 35px;
     -webkit-user-select: none;
     -webkit-app-region: drag;
-    
+    margin: 10px;
     .left {
         display: flex;
         justify-content: flex-start;
@@ -44,6 +44,14 @@
             margin: 0 8px;
         }
 
+        .reddot {
+            background-color: red;
+            width: 8px;
+            height: 8px;
+            border-radius: 100%;
+            margin: 0 8px;
+        }
+        
         .project {
             font-size: 13px;
         }

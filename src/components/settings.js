@@ -52,7 +52,7 @@ export default function SettingModal({
     useEffectOnce(() => {
         window.electronAPI.ipcRenderer.send("getAppSettings")
         window.electronAPI.ipcRenderer.once("appSettings", (e, result) => {
-            console.log(result, "settings")
+            //console.log(result, "settings")
             if (result) {
                 const data = JSON.parse(result)     
                 dispatch(setReminderSettings(data)) 
