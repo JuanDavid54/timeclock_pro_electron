@@ -120,7 +120,7 @@ const Home = () => {
                                             )
                                         })
                                 }
-                            </div> : <h1 className="no-data">NO DATA</h1>
+                            </div> : <h1 className="no-data">No assigned projects</h1>
                     }
                 </div>
                 <div className="tb-content col-md-6">
@@ -142,7 +142,7 @@ const Home = () => {
                                         </div>
                                     })
                                 }
-                            </div> : <h1 className="no-data">NO DATA</h1>
+                            </div> : <h1 className="no-data">No tasks</h1>
                     }
                 </div>
             </div>

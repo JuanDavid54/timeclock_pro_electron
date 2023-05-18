@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen,systemPreferences,dialog,powerMonitor } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, Tray, Menu, screen,systemPreferences,dialog,powerMonitor,net } = require('electron');
 const path = require('path');
 const url = require('url');
 const keytar = require('keytar');
@@ -130,7 +130,7 @@ function createActivityBar() {
 
     activityBar = new BrowserWindow({
         show: false,
-        width: 700,
+        width: 500,
         height: 30,
         frame: false,// remove the window frame
         webPreferences: {
@@ -155,7 +155,7 @@ function createActivityBar() {
         {
             x: 0,
             y: 0,
-            width: 700,
+            width: 500,
             height: 30
         }
     ]);
@@ -226,16 +226,12 @@ function createActivityBar() {
 
 }
 
-function createWindow() {
-    
-    setInitialAppSettings()
+
+function createAppWindow(){
 
     const width = 1200, height = 800;
-    loadingWindow = new BrowserWindow({ show: false, width, height, icon: iconpath })
 
-    loadingWindow.once('show', () => {
-
-        const startUrl = process.env.ELECTRON_START_URL || url.format({
+    const startUrl = process.env.ELECTRON_START_URL || url.format({
             pathname: path.join(__dirname, '../index.html'),
             protocol: 'file:',
             slashes: true
@@ -317,16 +313,42 @@ function createWindow() {
         //////////////////////////------ACTIVITY BAR---/////////////////////////////////
         createActivityBar()
         //mainWindow.webContents.openDevTools()
+}
+
+function createWindow() {
+
+    const width = 1200, height = 800;
+    setInitialAppSettings()
+
+    loadingWindow = new BrowserWindow({ 
+        show: false, width, height, icon: iconpath,webPreferences: {
+            preload: path.join(__dirname, "preload.js"),
+            contextIsolation: false
+        } 
     })
 
-    const loadingUrl = url.format({
+
+    /*const loadingUrl = url.format({
         pathname: path.join(__dirname, '../loading.html'),
         protocol: 'file:',
         slashes: true,
+    });*/
+    const loadingUrl = (process.env.ELECTRON_START_URL) ? url.format({
+        pathname: path.join(__dirname, '../public/loading.html'),
+        protocol: 'file:',
+        slashes: true,
+
+    }) : url.format({
+        pathname: path.join(__dirname, '../loading.html'),
+        protocol: 'file:',
+        slashes: true,
+
     });
     loadingWindow.loadURL(loadingUrl)
     loadingWindow.show()
+    //loadingWindow.webContents.openDevTools()
 }
+
 app.on('ready', () => {
     
     //It is detected when the computer comes out of hibernation.
@@ -472,6 +494,46 @@ ipcMain.on("getFakescreenshot", (event, _) => {
     event.sender.send("getFakescreenshot",img)
 
 });
+
+
+ipcMain.on("createAppWindow", async (event, data) => {
+    createAppMenu()
+    createAppWindow()
+});
+
+
+ipcMain.on("getInternetStatus", async (event) => {
+
+    const internetStatus = await testInternetConnection()
+    event.sender.send("InternetStatus", internetStatus)
+
+})
+
+
+function testInternetConnection(timeout = 5000) {
+
+    return new Promise((resolve) => {
+        const request = net.request('https://panel.staffmonitor.app/');
+
+        const timeoutId = setTimeout(() => {
+            resolve(false); // Timeout reached, resolve with false
+        }, timeout);
+
+        request.on('response', (response) => {
+            clearTimeout(timeoutId); // Clear the timeout since we got a response
+            resolve(response.statusCode === 200);
+        });
+
+        request.on('error', () => {
+            clearTimeout(timeoutId); // Clear the timeout in case of an error
+            resolve(false);
+        });
+
+        request.end();
+    });
+
+}
+
 
 async function setInitialAppSettings() {
 
