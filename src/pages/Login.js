@@ -17,6 +17,7 @@ import InputAdornment from '@mui/material/InputAdornment'
 import MuiFormControlLabel from '@mui/material/FormControlLabel'
 import FormHelperText from '@mui/material/FormHelperText'
 import Icon from '../components/Icon'
+import CircularProgress from "../components/CircularProgress"
 
 import { useAuth } from '../hooks/useAuth'
 
@@ -49,6 +50,7 @@ const LoginV1 = () => {
 
     const [rememberMe, setRememberMe] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    const [isFetching, setIsFetching] = useState(false)
 
     const {
         control,
@@ -64,30 +66,40 @@ const LoginV1 = () => {
     // ** Hook
     const auth = useAuth()
 
-    const onSubmit = (data) => {
-        const { email, password } = data;
+    const onSubmit = async (data) => {
+            
+        try{
 
-        auth.login({
-            email,
-            password,
-            rememberMe
-        }, (err) => {
-            console.log(err)
-            if (
-                err
-                && err.response
-                && err.response.data
-            ) {
-                let errors = err.response.data;
-                errors.length > 0
-                    && errors.forEach(item => {
-                        setError(item.field, {
-                            type: 'manual',
-                            message: item.message
+            const { email, password } = data;
+            setIsFetching(true)
+
+            await auth.login({
+                email,
+                password,
+                rememberMe
+            }, (err) => {
+                console.log(err)
+                setIsFetching(false)
+                if (
+                    err
+                    && err.response
+                    && err.response.data
+                ) {
+                    let errors = err.response.data;
+                    errors.length > 0
+                        && errors.forEach(item => {
+                            setError(item.field, {
+                                type: 'manual',
+                                message: item.message
+                            })
                         })
-                    })
-            }
-        })
+                }
+            })
+
+            setIsFetching(false)
+        } catch (error) {
+            setIsFetching(false)
+        }
     }
 
     return (
@@ -194,7 +206,7 @@ const LoginV1 = () => {
                         </Typography>
                     </a>
                 </Box>
-                <Button
+                {!isFetching && <Button
                     size='large'
                     variant='contained'
                     sx={{
@@ -203,7 +215,21 @@ const LoginV1 = () => {
                         display: "block"
                     }}
                     type="submit"
-                >Sign in</Button>
+                >Sign in</Button>}
+                {isFetching &&
+                    <Box
+                        sx={{
+                            mt: 2,
+                            ml: "auto",
+                            display: 'flex',
+                            alignItems: 'end',
+                            flexWrap: 'wrap',
+                            justifyContent: 'flex-end'
+                        }}
+                    >
+                        <CircularProgress style={{ width: "15px", height: "15px",margin: '10px' }} />
+                    </Box>
+                }
                 <Divider
                     sx={{
                         '& .MuiDivider-wrapper': { px: 2, color: "grey" }

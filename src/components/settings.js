@@ -148,7 +148,7 @@ export default function SettingModal({
                         })
                     }
                 </div>
-                <label className="desc">If I haven't tracked time in&nbsp;&nbsp;&nbsp;<TextField variant="standard" value={mins} onChange={(e) => updateReminderSettings({ mins: e.target.value })} disabled={!isRemind} className='mins' />&nbsp;&nbsp;&nbsp;mins</label>
+                <label className="desc">If I haven't tracked time in&nbsp;&nbsp;&nbsp;<TextField type="number" inputProps={{ step: 'any',min: 0, max: 999 }} variant="standard" value={mins} onChange={(e) => updateReminderSettings({ mins: e.target.value })} disabled={!isRemind} className='mins' />&nbsp;&nbsp;&nbsp;mins</label>
             </div>
         </DialogContent>
         <DialogActions>

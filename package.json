@@ -5,13 +5,13 @@
   "productName": "Staffmonitor",
   "main": "electron/main.js",
   "dependencies": {
-    "@emotion/react": "^11.10.5",
-    "@emotion/styled": "^11.10.5",
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
     "@hookform/resolvers": "^2.9.10",
     "@iconify/react": "^4.0.1",
     "@mui/icons-material": "^5.11.0",
-    "@mui/material": "^5.11.0",
-    "@mui/x-date-pickers": "^5.0.13",
+    "@mui/material": "^5.13.1",
+    "@mui/x-date-pickers": "^6.4.0",
     "@popperjs/core": "^2.11.6",
     "@srini-b/active-win-mod": "^7.7.10",
     "auto-launch": "^5.0.5",
@@ -75,6 +75,9 @@
       "build/**/*",
       "node_modules/**/*"
     ],
+    "mac": {
+      "icon": "public/assets/imgs/AppIcon.icns"
+    },
     "extraResources": [
       "public/assets/**/*"
     ],

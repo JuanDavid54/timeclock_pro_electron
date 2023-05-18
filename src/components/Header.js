@@ -27,6 +27,15 @@ import {
   changeSession
 } from "../actions/project"
 
+const cutProjectName = (cName)=>{
+
+  if(cName.length>35){
+    return `${cName.slice(0, 35)}...`
+  }
+
+  return cName 
+
+}
 
 const Header = () => {
   // redux
@@ -462,7 +471,7 @@ const Header = () => {
           }
           <div className="p-details">
             <span className={`worktimer ${isWorking ? "active" : ""}`}>{formatTime(workedTime)}</span>
-            {selectedProject && <span className='selectedProject'>{(`${selectedProject.name} assigned to current work time`)}</span>}
+            {selectedProject && <span className='selectedProject'>{(`${cutProjectName(selectedProject.name)} assigned to current work time`)}</span>}
           </div>
           {isBreaking && <span className="breaktimer">(Break: {formatTime(breakedTime)})</span>}
         </div>

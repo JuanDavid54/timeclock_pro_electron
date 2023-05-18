@@ -22,7 +22,7 @@ const Sidebar = () => {
                 <div className="logo-wrapper">
                     <img
                         className="logo"
-                        src="assets/imgs/logo.png"
+                        src="assets/imgs/logo_Staff.svg"
                         alt="logo"
                     />
                 </div>

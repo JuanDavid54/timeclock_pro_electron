@@ -96,11 +96,38 @@
                 transform: rotate(360deg);
             }
         }
+
+        .container {
+            text-align: center;
+            margin-top: 200px;
+        }
+
+        .title {
+            font-size: 50px;
+        }
+
+        .sad-face {
+            font-size: 50px;
+            margin-bottom: 30px;
+        }
+
+        .refresh-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .refresh-btn:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 
 <body>
-    <div class="mesh-loader">
+    <div id="loading" class="mesh-loader">
         <div class="set-one">
             <div class="circle"></div>
             <div class="circle"></div>
@@ -110,6 +137,38 @@
             <div class="circle"></div>
         </div>
     </div>
+    <div id="noInternet" class="container" style="display: none;">
+        <h1 class="title">No internet connection</h1>
+        <div class="sad-face">&#128577;</div>
+        <button class="refresh-btn" onclick="location.reload()">Reload</button>
+    </div>
+    <script>
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log( window.electronAPI)
+            window.electronAPI.ipcRenderer.send("getInternetStatus")
+            window.electronAPI.ipcRenderer.on('InternetStatus', (event, InternetStatus) => {
+
+                if (InternetStatus) {
+
+                    window.electronAPI.ipcRenderer.send("createAppWindow")
+
+                } else {
+
+                    //create refresh button
+                    const myDiv = document.getElementById('loading');
+                    myDiv.style.display = 'none';
+
+                    const nInternet = document.getElementById('noInternet');
+                    nInternet.style.display = 'block';
+
+                }
+
+            })
+
+        });
+
+    </script>
 </body>
 
 </html>

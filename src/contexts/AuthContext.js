@@ -182,7 +182,32 @@ const AuthProvider = ({ children, ...props }) => {
         }
     }
 
-    const handleLogin = (params, errorCallback) => {
+    const handleLogin = async (params, errorCallback) => {
+        
+        try {
+            
+            const response= await axios.post(proxy + "https://panel.staffmonitor.app/api/token/access", params) 
+            const { access, refresh } = response.data;
+            
+            // save to keytar
+            let keytarData = {
+                access,
+                refresh,
+                rememberMe: params.rememberMe
+            }
+
+            setRemember(params.rememberMe)
+            window.electronAPI.ipcRenderer.send("saveAccessToken", keytarData)
+            autoAuth(keytarData, "/")
+
+        } catch (error) {
+            if (errorCallback) errorCallback(error)     
+        }
+
+    }
+
+
+    /*(params, errorCallback) => {
         axios
             .post(proxy + "https://panel.staffmonitor.app/api/token/access", params)
             .then(async response => {
@@ -203,7 +228,7 @@ const AuthProvider = ({ children, ...props }) => {
             .catch(err => {
                 if (errorCallback) errorCallback(err)
             })
-    }
+    }*/
 
     const RefreshToken = async ({ access, refresh }) => {
 
