@@ -89,14 +89,35 @@ const SaveActions = (props) => {
                 )
 
             if (find) {
-                setAppInfos([].concat(appInfos.map(item => {
+                console.log(find)  
+                /*setAppInfos([].concat(appInfos.map(item => {
                     if (item.nameDetail === info.title
                         && item.sessionId === (session ? session.id : null)
                         && item.name === info.owner.name
                     )
                         return { ...item, timeUsed: item.timeUsed + 1 }
                     return item;
-                })))
+                })))*/
+                if(type === "application"){
+                    setAppInfos([].concat(appInfos.map(item => {
+                        if (item.nameDetail === info.title
+                            && item.sessionId === (session ? session.id : null)
+                            && ((type === "website" || type === "application") && item.name === info.owner.name)
+                        )
+                            return { ...item, timeUsed: item.timeUsed + 1 }
+                        return item;
+                    })))
+                    
+                }else{
+                    setAppInfos([].concat(appInfos.map(item => {
+                        if (item.nameDetail === info.title
+                            && item.sessionId === (session ? session.id : null)
+                        )
+                            return { ...item, timeUsed: item.timeUsed + 1 }
+                        return item;
+                    })))
+                
+                }
             } else {
 
                 let data = {
@@ -125,11 +146,21 @@ const SaveActions = (props) => {
     }
 
     const saveAppInfo = () => {
-        appInfos.forEach(item => {
+        
+        setAppInfos((appInfos)=>{
+
+            appInfos.forEach(item => {
+                axios
+                    .post(proxy + "https://panel.staffmonitor.app/api/app-log", item)
+              })
+                
+            return []
+        })
+        /*appInfos.forEach(item => {
             axios
             .post(proxy + "https://panel.staffmonitor.app/api/app-log", item)
             setAppInfos([])
-        })
+        })*/
 
     }
 
